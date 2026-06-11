@@ -1,9 +1,7 @@
 # Bluestock_fintech
 Data Analyst Intern capstone project @ Bluestock Fintech
 
-```python
-
-readme_content = """#  Mutual Fund Portfolio & Risk Analytics Platform
+#  Mutual Fund Portfolio & Risk Analytics Platform
 ### Bluestock Fintech Capstone Project — End-to-End Data Engineering, ETL Pipeline & Interactive Dashboard
 **Author:** Swati Sardar  
 **Designation:** Intern / Data Analyst — Bluestock Fintech  
@@ -29,17 +27,10 @@ The platform scales fragmented, high-frequency historical data arrays (sourced f
 ## System Pipeline Architecture
 The codebase is structured as a decoupled series of state-preserving Jupyter notebooks (`.ipynb`) and script controllers (`.py`). Each module handles isolated database tasks and serializes validated states to disk, allowing flawless error handling and pipeline check-pointing.
 
-
-```
-
-```text
 Traceback (most recent call last):
   File "<xbox-string>", line 296, in <module>
     print(f"CRITICAL FAULT: Required dataset target '{filename}' missing.")
 NameError: name 'filename' is not defined
-
-
-```
 
 [Raw Files Store] ──> (01_Data_Ingestion) ──> [Schema Verified Profiles]
 │
@@ -50,8 +41,6 @@ NameError: name 'filename' is not defined
 ├──> (04_Performance_Analytics) ─> [Scale-Invariant Log Return Vectors]
 │
 └──> (05_Advanced_Analytics) ────> [Empirical VaR / CVaR Tail Risk Models]
-
-```
 
 ### Production Module Breakdown:
 1. **`01_data_ingestion.ipynb` (Ingestion & Health Check):** Mounts data interface streams, verifies structural grid constraints, checks primitive feature data types, and logs immediate system memory usage boundaries.
@@ -104,14 +93,9 @@ The platform reads, verifies, and blends 10 modular tabular datasets, constructi
 ---
 
 ### 🐍 2. Initialize and Activate Virtual Environment
-
-```bash
 python3 -m venv env
 source env/bin/activate  # On Windows use: env\\Scripts\\activate
 pip install -r requirements.txt
-
-
-***
 
 ## 📌 Project Overview
 This repository hosts a production-grade Data Engineering framework and Quantitative Risk Analytics Engine built to clean, ingest, model, and visualize a multi-table relational schema containing active Indian mutual fund asset data. 
@@ -222,9 +206,3 @@ The system passes data objects cleanly into an interactive Management Interface 
 * **Exploratory Visualizations**: Matplotlib, Seaborn, Plotly Engine
 * **Business Intelligence Reporting**: Power BI / Tableau Layout integration
 * **Document Compilation**: WeasyPrint CSS Paged Media HTML-to-PDF compiler
-
----
-
-```
-
-```
