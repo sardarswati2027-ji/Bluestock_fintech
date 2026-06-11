@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Indian Mutual Fund Industry Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<style>
+  :root {
+    --bg: #f8f9fa; --surface: #ffffff; --surface2: #f1f3f5; --surface3: #e9ecef;
+    --text: #1a1a2e; --text2: #495057; --text3: #868e96;
+    --border: rgba(0,0,0,0.08); --border2: rgba(0,0,0,0.14);
+    --blue: #1971c2; --blue-light: #e7f5ff; --blue-mid: #339af0;
+    --teal: #0f9e77; --teal-light: #e3fafc; --teal-mid: #20c997;
+    --amber: #e67700; --amber-light: #fff9db; --amber-mid: #fcc419;
+    --purple: #6741d9; --purple-light: #f3f0ff; --purple-mid: #9775fa;
+    --coral: #c92a2a; --coral-light: #fff5f5; --coral-mid: #ff6b6b;
+    --green: #2f9e44; --green-light: #ebfbee; --green-mid: #51cf66;
+    --radius: 10px; --radius-sm: 6px; --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: var(--text); font-size: 14px; }
+
+  /* Layout */
+  .app { display: flex; flex-direction: column; min-height: 100vh; }
+  .header { background: var(--surface); border-bottom: 1px solid var(--border2); padding: 0 24px; display: flex; align-items: center; gap: 24px; height: 56px; position: sticky; top: 0; z-index: 100; }
+  .header-logo { font-size: 15px; font-weight: 700; color: var(--blue); white-space: nowrap; }
+  .nav { display: flex; gap: 4px; flex: 1; }
+  .nav-btn { padding: 6px 14px; border-radius: var(--radius-sm); border: none; background: transparent; cursor: pointer; font-size: 13px; font-weight: 500; color: var(--text2); transition: all .15s; white-space: nowrap; }
+  .nav-btn:hover { background: var(--surface2); color: var(--text); }
+  .nav-btn.active { background: var(--blue-light); color: var(--blue); }
+  .content { flex: 1; padding: 20px 24px; max-width: 1280px; margin: 0 auto; width: 100%; }
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* Cards & Grids */
+  .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
+  .kpi-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; box-shadow: var(--shadow); }
+  .kpi-label { font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
+  .kpi-value { font-size: 22px; font-weight: 700; line-height: 1; }
+  .kpi-sub { font-size: 11px; color: var(--text3); margin-top: 4px; }
+  .kpi-icon { float: right; width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+
+  .chart-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .chart-row.full { grid-template-columns: 1fr; }
+  .chart-row.w3-7 { grid-template-columns: 3fr 4fr; }
+  .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; box-shadow: var(--shadow); }
+  .chart-title { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .chart-subtitle { font-size: 11px; color: var(--text3); margin-bottom: 14px; }
+
+  /* Slicers */
+  .slicer-bar { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 16px; margin-bottom: 16px; display: flex; align-items: center; flex-wrap: wrap; gap: 12px; box-shadow: var(--shadow); }
+  .slicer-group { display: flex; align-items: center; gap: 8px; }
+  .slicer-label { font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: .5px; white-space: nowrap; }
+  select { background: var(--surface2); border: 1px solid var(--border2); border-radius: var(--radius-sm); padding: 5px 10px; font-size: 12px; color: var(--text); cursor: pointer; outline: none; }
+  select:focus { border-color: var(--blue); }
+
+  /* Table */
+  .table-wrap { overflow-x: auto; max-height: 320px; overflow-y: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { background: var(--surface2); padding: 8px 10px; text-align: left; font-weight: 600; font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: .4px; position: sticky; top: 0; cursor: pointer; white-space: nowrap; user-select: none; }
+  th:hover { background: var(--surface3); color: var(--text2); }
+  td { padding: 7px 10px; border-bottom: 1px solid var(--border); color: var(--text2); white-space: nowrap; }
+  tr:hover td { background: var(--surface2); }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; }
+  .badge-high { background: var(--coral-light); color: var(--coral); }
+  .badge-mod { background: var(--amber-light); color: var(--amber); }
+  .badge-low { background: var(--green-light); color: var(--green); }
+
+  /* Legend */
+  .legend { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 10px; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text2); }
+  .legend-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+
+  /* Donut center */
+  .donut-wrap { position: relative; }
+  .donut-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; pointer-events: none; }
+  .donut-center-val { font-size: 18px; font-weight: 700; color: var(--text); }
+  .donut-center-lbl { font-size: 10px; color: var(--text3); }
+
+  /* Heatmap */
+  #heatmap-wrap { overflow-x: auto; }
+  .hm-table { border-collapse: collapse; font-size: 11px; }
+  .hm-table th { background: var(--surface2); padding: 5px 8px; font-size: 10px; color: var(--text3); font-weight: 600; white-space: nowrap; text-align: center; }
+  .hm-table td { padding: 5px 8px; text-align: right; font-size: 11px; border: 1px solid var(--border); cursor: default; }
+  .hm-table .row-label { text-align: left; white-space: nowrap; color: var(--text2); font-weight: 500; background: var(--surface2); position: sticky; left: 0; }
+
+  /* Misc */
+  .color-blue { color: var(--blue); } .color-teal { color: var(--teal); } .color-amber { color: var(--amber); } .color-purple { color: var(--purple); } .color-coral { color: var(--coral); }
+  .sort-arrow { display: inline-block; margin-left: 4px; color: var(--text3); }
+
+  @media (max-width: 900px) {
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    .chart-row, .chart-row.w3-7 { grid-template-columns: 1fr; }
+    .header { flex-wrap: wrap; height: auto; padding: 10px 16px; }
+    .content { padding: 14px 16px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="header">
+    <div class="header-logo"><i class="ti ti-chart-pie" style="margin-right:6px"></i>MF India Dashboard</div>
+    <nav class="nav">
+      <button class="nav-btn active" onclick="showPage('p1',this)"><i class="ti ti-building-bank" style="margin-right:5px"></i>Industry Overview</button>
+      <button class="nav-btn" onclick="showPage('p2',this)"><i class="ti ti-trending-up" style="margin-right:5px"></i>Fund Performance</button>
+      <button class="nav-btn" onclick="showPage('p3',this)"><i class="ti ti-users" style="margin-right:5px"></i>Investor Analytics</button>
+      <button class="nav-btn" onclick="showPage('p4',this)"><i class="ti ti-calendar-stats" style="margin-right:5px"></i>SIP &amp; Market Trends</button>
+    </nav>
+  </header>
+
+  <main class="content">
+
+    <!-- PAGE 1: Industry Overview -->
+    <div class="page active" id="p1">
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-icon" style="background:var(--blue-light);color:var(--blue)"><i class="ti ti-wallet"></i></div>
+          <div class="kpi-label">Total AUM</div>
+          <div class="kpi-value color-blue">₹81.0L Cr</div>
+          <div class="kpi-sub">As of Dec 2025</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon" style="background:var(--teal-light);color:var(--teal)"><i class="ti ti-arrows-exchange"></i></div>
+          <div class="kpi-label">SIP Inflows</div>
+          <div class="kpi-value color-teal">₹31K Cr</div>
+          <div class="kpi-sub">Monthly (Dec 2025)</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon" style="background:var(--amber-light);color:var(--amber)"><i class="ti ti-file-certificate"></i></div>
+          <div class="kpi-label">Total Folios</div>
+          <div class="kpi-value color-amber">26.12 Cr</div>
+          <div class="kpi-sub">As of Dec 2025</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon" style="background:var(--purple-light);color:var(--purple)"><i class="ti ti-stack-2"></i></div>
+          <div class="kpi-label">No. of Schemes</div>
+          <div class="kpi-value color-purple">1,908</div>
+          <div class="kpi-sub">Active schemes</div>
+        </div>
+      </div>
+
+      <div class="chart-row full">
+        <div class="chart-card">
+          <div class="chart-title">Industry AUM Trend</div>
+          <div class="chart-subtitle">Jan 2022 – Dec 2025 (₹ Crore)</div>
+          <div style="position:relative;height:240px">
+            <canvas id="c_aum_trend" role="img" aria-label="Line chart showing industry AUM growing from ~30L Cr in 2022 to ~81L Cr in 2025">AUM trend 2022-2025.</canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="chart-row full">
+        <div class="chart-card">
+          <div class="chart-title">AUM by Fund House – Top 10</div>
+          <div class="chart-subtitle">Latest available (₹ Crore)</div>
+          <div style="position:relative;height:280px">
+            <canvas id="c_top10" role="img" aria-label="Horizontal bar chart of top 10 fund houses by AUM">Top 10 fund houses by AUM.</canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE 2: Fund Performance -->
+    <div class="page" id="p2">
+      <div class="slicer-bar">
+        <i class="ti ti-filter" style="color:var(--text3);font-size:16px" aria-hidden="true"></i>
+        <div class="slicer-group">
+          <span class="slicer-label">Fund House</span>
+          <select id="sl_fh" onchange="filterPerf()">
+            <option value="">All</option>
+            <option>SBI Mutual Fund</option><option>HDFC Mutual Fund</option><option>ICICI Prudential MF</option>
+            <option>Nippon India MF</option><option>Kotak Mahindra MF</option><option>Axis Mutual Fund</option>
+            <option>Aditya Birla Sun Life MF</option><option>UTI Mutual Fund</option>
+            <option>Mirae Asset MF</option><option>DSP Mutual Fund</option>
+          </select>
+        </div>
+        <div class="slicer-group">
+          <span class="slicer-label">Category</span>
+          <select id="sl_cat" onchange="filterPerf()">
+            <option value="">All</option>
+            <option>Large Cap</option><option>Mid Cap</option><option>Small Cap</option>
+            <option>Flexi Cap</option><option>Large & Mid Cap</option><option>Gilt</option>
+            <option>Short Duration</option><option>Liquid</option><option>ELSS</option>
+            <option>Value</option><option>Index/ETF</option><option>Index</option>
+          </select>
+        </div>
+        <div class="slicer-group">
+          <span class="slicer-label">Plan</span>
+          <select id="sl_plan" onchange="filterPerf()">
+            <option value="">All</option><option>Regular</option><option>Direct</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="chart-row w3-7">
+        <div class="chart-card">
+          <div class="chart-title">Return vs Risk (Bubble = AUM)</div>
+          <div class="chart-subtitle">3-yr return (%) vs Ann. Std Dev (%)</div>
+          <div style="position:relative;height:300px">
+            <canvas id="c_scatter" role="img" aria-label="Bubble scatter plot of fund return vs risk, bubble size proportional to AUM">Return vs risk scatter.</canvas>
+          </div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">NAV vs Benchmark</div>
+          <div class="chart-subtitle">
+            <select id="sl_fund_nav" onchange="updateNavChart()" style="margin-right:8px">
+              <option value="100016">HDFC Top 100 – Regular</option>
+              <option value="100033">HDFC Mid-Cap Opp – Regular</option>
+              <option value="101206">ABSL Frontline Equity – Regular</option>
+              <option value="102885">UTI Nifty 50 Index – Regular</option>
+              <option value="118632">Nippon India Large Cap – Regular</option>
+              <option value="119092">Axis Bluechip – Regular</option>
+              <option value="119551">SBI Bluechip – Regular</option>
+            </select>
+            vs Benchmark
+          </div>
+          <div style="position:relative;height:270px">
+            <canvas id="c_nav" role="img" aria-label="Line chart comparing selected fund NAV vs benchmark index">NAV vs benchmark.</canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="chart-card" style="margin-bottom:16px">
+        <div class="chart-title">Fund Scorecard</div>
+        <div class="chart-subtitle">Click column headers to sort</div>
+        <div class="table-wrap">
+          <table id="scorecard-tbl">
+            <thead>
+              <tr>
+                <th onclick="sortTable('scheme_name')" title="Sort">Scheme <span class="sort-arrow">↕</span></th>
+                <th onclick="sortTable('fund_house')" title="Sort">Fund House <span class="sort-arrow">↕</span></th>
+                <th onclick="sortTable('category')" title="Sort">Category <span class="sort-arrow">↕</span></th>
+                <th onclick="sortTable('return_1yr_pct')" title="Sort">1Y Ret% <span class="sort-arrow">↕</span></th>
+                <th onclick="sortTable('return_3yr_pct')" title="Sort">3Y Ret% <span class="sort-arrow">↕</span></th>
+                <th onclick="sortTable('sharpe_ratio')" title="Sort">Sharpe <span class="sort-arrow">↕</span></th>
+                <th onclick="sortTable('aum_crore')" title="Sort">AUM Cr <span class="sort-arrow">↕</span></th>
+                <th onclick="sortTable('risk_grade')" title="Sort">Risk <span class="sort-arrow">↕</span></th>
+              </tr>
+            </thead>
+            <tbody id="scorecard-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE 3: Investor Analytics -->
+    <div class="page" id="p3">
+      <div class="slicer-bar">
+        <i class="ti ti-filter" style="color:var(--text3);font-size:16px" aria-hidden="true"></i>
+        <div class="slicer-group">
+          <span class="slicer-label">State</span>
+          <select id="sl_state" onchange="filterInvestor()">
+            <option value="">All</option>
+            <option>Punjab</option><option>Tamil Nadu</option><option>Madhya Pradesh</option>
+            <option>Rajasthan</option><option>Gujarat</option><option>West Bengal</option>
+            <option>Telangana</option><option>Delhi</option><option>Uttar Pradesh</option>
+            <option>Haryana</option><option>Karnataka</option><option>Maharashtra</option>
+          </select>
+        </div>
+        <div class="slicer-group">
+          <span class="slicer-label">Age Group</span>
+          <select id="sl_age" onchange="filterInvestor()">
+            <option value="">All</option>
+            <option>18-25</option><option>26-35</option><option>36-45</option><option>46-55</option><option>56+</option>
+          </select>
+        </div>
+        <div class="slicer-group">
+          <span class="slicer-label">City Tier</span>
+          <select id="sl_tier" onchange="filterInvestor()">
+            <option value="">All</option><option>T30</option><option>B30</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="chart-row">
+        <div class="chart-card">
+          <div class="chart-title">Transaction Amount by State</div>
+          <div class="chart-subtitle">Total invested amount (₹ Cr)</div>
+          <div style="position:relative;height:300px">
+            <canvas id="c_state" role="img" aria-label="Horizontal bar chart of transaction amount by state">State-wise transactions.</canvas>
+          </div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Transaction Type Split</div>
+          <div class="chart-subtitle">SIP vs Lumpsum vs Redemption</div>
+          <div class="donut-wrap" style="position:relative;height:260px">
+            <canvas id="c_donut" role="img" aria-label="Donut chart showing SIP, Lumpsum, and Redemption proportions">Transaction type split.</canvas>
+            <div class="donut-center" id="donut-center">
+              <div class="donut-center-val">₹3.5K Cr</div>
+              <div class="donut-center-lbl">Total</div>
+            </div>
+          </div>
+          <div class="legend" id="donut-legend" style="justify-content:center;margin-top:8px"></div>
+        </div>
+      </div>
+
+      <div class="chart-row">
+        <div class="chart-card">
+          <div class="chart-title">Age Group vs Avg SIP Amount</div>
+          <div class="chart-subtitle">Average SIP transaction (₹)</div>
+          <div style="position:relative;height:220px">
+            <canvas id="c_age" role="img" aria-label="Bar chart of average SIP amount by age group">Age group SIP amounts.</canvas>
+          </div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Monthly Transaction Volume</div>
+          <div class="chart-subtitle">Total amount (₹ Cr), Jan 2024 – May 2025</div>
+          <div style="position:relative;height:220px">
+            <canvas id="c_monthtx" role="img" aria-label="Line chart of monthly transaction volume">Monthly transaction volume.</canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE 4: SIP & Market Trends -->
+    <div class="page" id="p4">
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-icon" style="background:var(--teal-light);color:var(--teal)"><i class="ti ti-repeat"></i></div>
+          <div class="kpi-label">SIP Accounts 2022</div>
+          <div class="kpi-value" style="font-size:20px">4.91 Cr</div>
+          <div class="kpi-sub">Active accounts</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon" style="background:var(--blue-light);color:var(--blue)"><i class="ti ti-chart-line"></i></div>
+          <div class="kpi-label">SIP Accounts 2025</div>
+          <div class="kpi-value color-blue" style="font-size:20px">9.35 Cr</div>
+          <div class="kpi-sub">Active accounts</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon" style="background:var(--green-light);color:var(--green)"><i class="ti ti-trending-up"></i></div>
+          <div class="kpi-label">YoY Growth (3yr)</div>
+          <div class="kpi-value color-teal" style="font-size:20px">+90.4%</div>
+          <div class="kpi-sub">2022 → 2025</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon" style="background:var(--purple-light);color:var(--purple)"><i class="ti ti-cash"></i></div>
+          <div class="kpi-label">Peak SIP Inflow</div>
+          <div class="kpi-value color-purple" style="font-size:20px">₹26,459 Cr</div>
+          <div class="kpi-sub">Dec 2025</div>
+        </div>
+      </div>
+
+      <div class="chart-row full">
+        <div class="chart-card">
+          <div class="chart-title">SIP Inflows vs Nifty 50 Index – 2022 to 2025</div>
+          <div class="chart-subtitle">Dual axis: SIP inflow (₹ Cr, bars) + Nifty 50 closing value (line)</div>
+          <div class="legend">
+            <div class="legend-item"><span class="legend-dot" style="background:#20c997"></span>SIP Inflow (₹ Cr)</div>
+            <div class="legend-item"><span class="legend-dot" style="background:#e67700;border-radius:50%"></span>Nifty 50</div>
+          </div>
+          <div style="position:relative;height:260px">
+            <canvas id="c_dual" role="img" aria-label="Dual axis chart with SIP inflow bars and Nifty 50 line 2022 to 2025">SIP vs Nifty 50.</canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="chart-row">
+        <div class="chart-card">
+          <div class="chart-title">Category Inflows – Monthly Heatmap</div>
+          <div class="chart-subtitle">FY 2024-25 (₹ Cr), excluding Liquid</div>
+          <div id="heatmap-wrap"></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Top 5 Categories – Net Inflow FY25</div>
+          <div class="chart-subtitle">Apr 2024 – Mar 2025 (₹ Cr)</div>
+          <div style="position:relative;height:260px">
+            <canvas id="c_top5cat" role="img" aria-label="Horizontal bar chart of top 5 categories by net inflow in FY25">Top 5 categories FY25.</canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+// ============================================================
+// DATA
+// ============================================================
+const AUM_TREND = [
+  {d:'2022-01',v:2950000},{d:'2022-03',v:3018000},{d:'2022-06',v:2940000},{d:'2022-09',v:3090000},
+  {d:'2022-12',v:3200000},{d:'2023-03',v:3235000},{d:'2023-06',v:3500000},{d:'2023-09',v:3742000},
+  {d:'2023-12',v:3960000},{d:'2024-03',v:4375000},{d:'2024-06',v:4520000},{d:'2024-09',v:4727000},
+  {d:'2024-12',v:5268000},{d:'2025-03',v:5447000},{d:'2025-06',v:5800000},{d:'2025-09',v:6100000},{d:'2025-12',v:6274000}
+];
+const TOP10 = [
+  {h:'SBI MF',v:1250000},{h:'ICICI Pru MF',v:1074000},{h:'HDFC MF',v:930000},
+  {h:'Nippon India MF',v:700000},{h:'Kotak MF',v:580000},{h:'ABSL MF',v:460000},
+  {h:'UTI MF',v:410000},{h:'Axis MF',v:350000},{h:'Mirae Asset MF',v:290000},{h:'DSP MF',v:230000}
+];
+const PERF = [
+  {scheme_name:'SBI Bluechip – Regular',fund_house:'SBI Mutual Fund',category:'Large Cap',plan:'Regular',return_1yr_pct:12.42,return_3yr_pct:12.36,sharpe_ratio:0.88,aum_crore:14288,risk_grade:'Moderate',std_dev:14.0},
+  {scheme_name:'SBI Bluechip – Direct',fund_house:'SBI Mutual Fund',category:'Large Cap',plan:'Direct',return_1yr_pct:15.25,return_3yr_pct:11.30,sharpe_ratio:0.81,aum_crore:1231,risk_grade:'Moderate',std_dev:14.0},
+  {scheme_name:'SBI Small Cap – Regular',fund_house:'SBI Mutual Fund',category:'Small Cap',plan:'Regular',return_1yr_pct:24.56,return_3yr_pct:23.39,sharpe_ratio:0.94,aum_crore:19259,risk_grade:'Very High',std_dev:25.0},
+  {scheme_name:'SBI Small Cap – Direct',fund_house:'SBI Mutual Fund',category:'Small Cap',plan:'Direct',return_1yr_pct:20.59,return_3yr_pct:23.14,sharpe_ratio:0.93,aum_crore:36061,risk_grade:'Very High',std_dev:25.0},
+  {scheme_name:'SBI Magnum Gilt – Regular',fund_house:'SBI Mutual Fund',category:'Gilt',plan:'Regular',return_1yr_pct:5.34,return_3yr_pct:6.07,sharpe_ratio:1.52,aum_crore:24101,risk_grade:'Low',std_dev:4.0},
+  {scheme_name:'HDFC Top 100 – Regular',fund_house:'HDFC Mutual Fund',category:'Large Cap',plan:'Regular',return_1yr_pct:10.94,return_3yr_pct:14.84,sharpe_ratio:1.06,aum_crore:6434,risk_grade:'Moderate',std_dev:14.5},
+  {scheme_name:'HDFC Top 100 – Direct',fund_house:'HDFC Mutual Fund',category:'Large Cap',plan:'Direct',return_1yr_pct:11.48,return_3yr_pct:13.38,sharpe_ratio:0.96,aum_crore:10611,risk_grade:'Moderate',std_dev:14.5},
+  {scheme_name:'HDFC Mid-Cap Opp – Regular',fund_house:'HDFC Mutual Fund',category:'Mid Cap',plan:'Regular',return_1yr_pct:15.43,return_3yr_pct:16.58,sharpe_ratio:0.87,aum_crore:23185,risk_grade:'High',std_dev:19.0},
+  {scheme_name:'HDFC Mid-Cap Opp – Direct',fund_house:'HDFC Mutual Fund',category:'Mid Cap',plan:'Direct',return_1yr_pct:19.98,return_3yr_pct:15.29,sharpe_ratio:0.80,aum_crore:18792,risk_grade:'High',std_dev:19.0},
+  {scheme_name:'HDFC Short Term Debt – Regular',fund_house:'HDFC Mutual Fund',category:'Short Duration',plan:'Regular',return_1yr_pct:6.83,return_3yr_pct:7.37,sharpe_ratio:1.84,aum_crore:27953,risk_grade:'Low',std_dev:2.5},
+  {scheme_name:'ICICI Pru Bluechip – Regular',fund_house:'ICICI Prudential MF',category:'Large Cap',plan:'Regular',return_1yr_pct:15.63,return_3yr_pct:11.54,sharpe_ratio:0.82,aum_crore:36022,risk_grade:'Moderate',std_dev:13.8},
+  {scheme_name:'ICICI Pru Bluechip – Direct',fund_house:'ICICI Prudential MF',category:'Large Cap',plan:'Direct',return_1yr_pct:14.12,return_3yr_pct:14.41,sharpe_ratio:1.03,aum_crore:41553,risk_grade:'Moderate',std_dev:13.8},
+  {scheme_name:'ICICI Pru Midcap – Regular',fund_house:'ICICI Prudential MF',category:'Mid Cap',plan:'Regular',return_1yr_pct:14.02,return_3yr_pct:18.08,sharpe_ratio:0.95,aum_crore:979,risk_grade:'High',std_dev:20.0},
+  {scheme_name:'ICICI Pru Value Discovery – Regular',fund_house:'ICICI Prudential MF',category:'Value',plan:'Regular',return_1yr_pct:16.67,return_3yr_pct:14.76,sharpe_ratio:0.98,aum_crore:2571,risk_grade:'Moderately High',std_dev:16.0},
+  {scheme_name:'ICICI Pru Liquid – Regular',fund_house:'ICICI Prudential MF',category:'Liquid',plan:'Regular',return_1yr_pct:8.89,return_3yr_pct:7.68,sharpe_ratio:7.68,aum_crore:39116,risk_grade:'Low',std_dev:0.5},
+  {scheme_name:'Nippon India Large Cap – Regular',fund_house:'Nippon India MF',category:'Large Cap',plan:'Regular',return_1yr_pct:15.84,return_3yr_pct:14.00,sharpe_ratio:1.00,aum_crore:20909,risk_grade:'Moderate',std_dev:14.2},
+  {scheme_name:'Nippon India Large Cap – Direct',fund_house:'Nippon India MF',category:'Large Cap',plan:'Direct',return_1yr_pct:14.42,return_3yr_pct:12.33,sharpe_ratio:0.88,aum_crore:39475,risk_grade:'Moderate',std_dev:14.2},
+  {scheme_name:'Nippon India Small Cap – Regular',fund_house:'Nippon India MF',category:'Small Cap',plan:'Regular',return_1yr_pct:21.30,return_3yr_pct:20.15,sharpe_ratio:0.81,aum_crore:43630,risk_grade:'Very High',std_dev:24.5},
+  {scheme_name:'Nippon India ETF Nifty 50',fund_house:'Nippon India MF',category:'Index/ETF',plan:'Direct',return_1yr_pct:10.14,return_3yr_pct:11.77,sharpe_ratio:0.91,aum_crore:20284,risk_grade:'Moderate',std_dev:13.0},
+  {scheme_name:'Nippon India Gilt – Regular',fund_house:'Nippon India MF',category:'Gilt',plan:'Regular',return_1yr_pct:6.19,return_3yr_pct:5.31,sharpe_ratio:1.33,aum_crore:30030,risk_grade:'Low',std_dev:4.2},
+  {scheme_name:'Kotak Bluechip – Regular',fund_house:'Kotak Mahindra MF',category:'Large Cap',plan:'Regular',return_1yr_pct:14.37,return_3yr_pct:12.25,sharpe_ratio:0.87,aum_crore:35585,risk_grade:'Moderate',std_dev:13.9},
+  {scheme_name:'Kotak Emerging Equity – Regular',fund_house:'Kotak Mahindra MF',category:'Mid Cap',plan:'Regular',return_1yr_pct:17.12,return_3yr_pct:18.23,sharpe_ratio:0.96,aum_crore:47469,risk_grade:'High',std_dev:21.0},
+  {scheme_name:'Kotak Flexicap – Regular',fund_house:'Kotak Mahindra MF',category:'Flexi Cap',plan:'Regular',return_1yr_pct:15.74,return_3yr_pct:15.65,sharpe_ratio:0.98,aum_crore:35012,risk_grade:'Moderately High',std_dev:16.5},
+  {scheme_name:'Kotak Liquid – Regular',fund_house:'Kotak Mahindra MF',category:'Liquid',plan:'Regular',return_1yr_pct:4.26,return_3yr_pct:6.18,sharpe_ratio:6.18,aum_crore:27623,risk_grade:'Low',std_dev:0.4},
+  {scheme_name:'Axis Bluechip – Regular',fund_house:'Axis Mutual Fund',category:'Large Cap',plan:'Regular',return_1yr_pct:11.82,return_3yr_pct:11.84,sharpe_ratio:0.85,aum_crore:25803,risk_grade:'Moderate',std_dev:13.6},
+  {scheme_name:'Axis Bluechip – Direct',fund_house:'Axis Mutual Fund',category:'Large Cap',plan:'Direct',return_1yr_pct:13.95,return_3yr_pct:12.14,sharpe_ratio:0.87,aum_crore:15866,risk_grade:'Moderate',std_dev:13.6},
+  {scheme_name:'Axis Midcap – Regular',fund_house:'Axis Mutual Fund',category:'Mid Cap',plan:'Regular',return_1yr_pct:14.88,return_3yr_pct:15.18,sharpe_ratio:0.80,aum_crore:28996,risk_grade:'High',std_dev:20.5},
+  {scheme_name:'Axis Small Cap – Regular',fund_house:'Axis Mutual Fund',category:'Small Cap',plan:'Regular',return_1yr_pct:21.97,return_3yr_pct:20.98,sharpe_ratio:0.84,aum_crore:21545,risk_grade:'Very High',std_dev:24.0},
+  {scheme_name:'ABSL Frontline Equity – Regular',fund_house:'Aditya Birla Sun Life MF',category:'Large Cap',plan:'Regular',return_1yr_pct:14.82,return_3yr_pct:13.78,sharpe_ratio:0.98,aum_crore:23500,risk_grade:'Moderate',std_dev:14.0},
+  {scheme_name:'ABSL Small Cap – Regular',fund_house:'Aditya Birla Sun Life MF',category:'Small Cap',plan:'Regular',return_1yr_pct:24.93,return_3yr_pct:22.38,sharpe_ratio:0.90,aum_crore:41613,risk_grade:'Very High',std_dev:25.5},
+  {scheme_name:'ABSL Liquid – Regular',fund_house:'Aditya Birla Sun Life MF',category:'Liquid',plan:'Regular',return_1yr_pct:6.18,return_3yr_pct:5.14,sharpe_ratio:5.14,aum_crore:38995,risk_grade:'Low',std_dev:0.4},
+  {scheme_name:'UTI Nifty 50 Index – Regular',fund_house:'UTI Mutual Fund',category:'Index',plan:'Regular',return_1yr_pct:13.76,return_3yr_pct:12.10,sharpe_ratio:0.93,aum_crore:7350,risk_grade:'Moderate',std_dev:13.0},
+  {scheme_name:'UTI Mid Cap – Regular',fund_house:'UTI Mutual Fund',category:'Mid Cap',plan:'Regular',return_1yr_pct:16.30,return_3yr_pct:15.61,sharpe_ratio:0.82,aum_crore:41728,risk_grade:'High',std_dev:20.0},
+  {scheme_name:'UTI Flexi Cap – Regular',fund_house:'UTI Mutual Fund',category:'Flexi Cap',plan:'Regular',return_1yr_pct:17.43,return_3yr_pct:15.34,sharpe_ratio:0.96,aum_crore:17912,risk_grade:'Moderately High',std_dev:16.8},
+  {scheme_name:'Mirae Asset Large Cap – Regular',fund_house:'Mirae Asset MF',category:'Large Cap',plan:'Regular',return_1yr_pct:15.12,return_3yr_pct:14.81,sharpe_ratio:1.06,aum_crore:11361,risk_grade:'Moderate',std_dev:13.5},
+  {scheme_name:'Mirae Asset Emerging Bluechip – Regular',fund_house:'Mirae Asset MF',category:'Large & Mid Cap',plan:'Regular',return_1yr_pct:14.91,return_3yr_pct:14.56,sharpe_ratio:0.91,aum_crore:49046,risk_grade:'Moderately High',std_dev:17.0},
+  {scheme_name:'Mirae Asset Tax Saver – Regular',fund_house:'Mirae Asset MF',category:'ELSS',plan:'Regular',return_1yr_pct:11.16,return_3yr_pct:13.58,sharpe_ratio:0.80,aum_crore:2989,risk_grade:'High',std_dev:16.5},
+  {scheme_name:'DSP Top 100 Equity – Regular',fund_house:'DSP Mutual Fund',category:'Large Cap',plan:'Regular',return_1yr_pct:11.96,return_3yr_pct:12.82,sharpe_ratio:0.92,aum_crore:41828,risk_grade:'Moderate',std_dev:14.0},
+  {scheme_name:'DSP Midcap – Regular',fund_house:'DSP Mutual Fund',category:'Mid Cap',plan:'Regular',return_1yr_pct:14.12,return_3yr_pct:17.16,sharpe_ratio:0.90,aum_crore:37835,risk_grade:'High',std_dev:20.8},
+  {scheme_name:'DSP Small Cap – Regular',fund_house:'DSP Mutual Fund',category:'Small Cap',plan:'Regular',return_1yr_pct:20.20,return_3yr_pct:20.08,sharpe_ratio:0.80,aum_crore:35124,risk_grade:'Very High',std_dev:25.0}
+];
+const NAV_DATA = {
+  100016: [{d:'2022-01',v:520},{d:'2022-06',v:540},{d:'2022-12',v:560},{d:'2023-06',v:600},{d:'2023-12',v:650},{d:'2024-06',v:700},{d:'2024-12',v:760},{d:'2025-06',v:820},{d:'2025-12',v:880}],
+  100033: [{d:'2022-01',v:80},{d:'2022-06',v:82},{d:'2022-12',v:90},{d:'2023-06',v:105},{d:'2023-12',v:120},{d:'2024-06',v:138},{d:'2024-12',v:152},{d:'2025-06',v:170},{d:'2025-12',v:188}],
+  101206: [{d:'2022-01',v:310},{d:'2022-06',v:318},{d:'2022-12',v:330},{d:'2023-06',v:355},{d:'2023-12',v:382},{d:'2024-06',v:410},{d:'2024-12',v:445},{d:'2025-06',v:480},{d:'2025-12',v:512}],
+  102885: [{d:'2022-01',v:110},{d:'2022-06',v:114},{d:'2022-12',v:118},{d:'2023-06',v:125},{d:'2023-12',v:136},{d:'2024-06',v:148},{d:'2024-12',v:158},{d:'2025-06',v:170},{d:'2025-12',v:180}],
+  118632: [{d:'2022-01',v:52},{d:'2022-06',v:54},{d:'2022-12',v:58},{d:'2023-06',v:63},{d:'2023-12',v:70},{d:'2024-06',v:76},{d:'2024-12',v:83},{d:'2025-06',v:90},{d:'2025-12',v:97}],
+  119092: [{d:'2022-01',v:42},{d:'2022-06',v:43},{d:'2022-12',v:44},{d:'2023-06',v:47},{d:'2023-12',v:51},{d:'2024-06',v:56},{d:'2024-12',v:60},{d:'2025-06',v:66},{d:'2025-12',v:71}],
+  119551: [{d:'2022-01',v:52},{d:'2022-06',v:54},{d:'2022-12',v:57},{d:'2023-06',v:61},{d:'2023-12',v:67},{d:'2024-06',v:73},{d:'2024-12',v:80},{d:'2025-06',v:86},{d:'2025-12',v:93}]
+};
+const NIFTY50 = [
+  {d:'2022-01',v:18615},{d:'2022-02',v:18866},{d:'2022-03',v:17464},{d:'2022-04',v:17102},{d:'2022-05',v:16584},
+  {d:'2022-06',v:15780},{d:'2022-07',v:17160},{d:'2022-08',v:17759},{d:'2022-09',v:17094},{d:'2022-10',v:18012},
+  {d:'2022-11',v:18758},{d:'2022-12',v:18105},{d:'2023-01',v:17616},{d:'2023-02',v:17303},{d:'2023-03',v:17360},
+  {d:'2023-04',v:18065},{d:'2023-05',v:18535},{d:'2023-06',v:19189},{d:'2023-07',v:19754},{d:'2023-08',v:19674},
+  {d:'2023-09',v:19639},{d:'2023-10',v:19079},{d:'2023-11',v:20133},{d:'2023-12',v:21731},{d:'2024-01',v:21726},
+  {d:'2024-02',v:22493},{d:'2024-03',v:22326},{d:'2024-04',v:22648},{d:'2024-05',v:23517},{d:'2024-06',v:24011},
+  {d:'2024-07',v:24951},{d:'2024-08',v:25235},{d:'2024-09',v:26178},{d:'2024-10',v:24205},{d:'2024-11',v:24678},
+  {d:'2024-12',v:23644},{d:'2025-01',v:23163},{d:'2025-02',v:22124},{d:'2025-03',v:23519},{d:'2025-04',v:24125},
+  {d:'2025-05',v:25013},{d:'2025-06',v:24800},{d:'2025-07',v:25500},{d:'2025-08',v:26200},{d:'2025-09',v:25900},
+  {d:'2025-10',v:26800},{d:'2025-11',v:27200},{d:'2025-12',v:26500}
+];
+const SIP_MONTHLY = [
+  {m:'2022-01',v:11517},{m:'2022-02',v:11438},{m:'2022-03',v:12328},{m:'2022-04',v:11863},{m:'2022-05',v:12286},
+  {m:'2022-06',v:12276},{m:'2022-07',v:12140},{m:'2022-08',v:12693},{m:'2022-09',v:13040},{m:'2022-10',v:13041},
+  {m:'2022-11',v:13306},{m:'2022-12',v:13573},{m:'2023-01',v:13856},{m:'2023-02',v:13686},{m:'2023-03',v:14276},
+  {m:'2023-04',v:13728},{m:'2023-05',v:14750},{m:'2023-06',v:14734},{m:'2023-07',v:15245},{m:'2023-08',v:15814},
+  {m:'2023-09',v:16042},{m:'2023-10',v:16928},{m:'2023-11',v:17073},{m:'2023-12',v:17610},{m:'2024-01',v:18838},
+  {m:'2024-02',v:19187},{m:'2024-03',v:19271},{m:'2024-04',v:20371},{m:'2024-05',v:20904},{m:'2024-06',v:21262},
+  {m:'2024-07',v:23332},{m:'2024-08',v:23547},{m:'2024-09',v:24508},{m:'2024-10',v:25323},{m:'2024-11',v:25320},
+  {m:'2024-12',v:26459},{m:'2025-01',v:26400},{m:'2025-02',v:25999},{m:'2025-03',v:25926},{m:'2025-04',v:26000},
+  {m:'2025-05',v:26100},{m:'2025-06',v:26200},{m:'2025-07',v:26350},{m:'2025-08',v:26450},{m:'2025-09',v:26500},
+  {m:'2025-10',v:26550},{m:'2025-11',v:26600},{m:'2025-12',v:26459}
+];
+const STATE_DATA = [
+  {s:'Punjab',v:315780459},{s:'Tamil Nadu',v:315177237},{s:'Madhya Pradesh',v:308312493},
+  {s:'Rajasthan',v:298645822},{s:'Gujarat',v:298358940},{s:'West Bengal',v:297182514},
+  {s:'Telangana',v:290219284},{s:'Delhi',v:289633404},{s:'Uttar Pradesh',v:285368873},
+  {s:'Haryana',v:279634354},{s:'Karnataka',v:273753570},{s:'Maharashtra',v:269513480}
+];
+const TX_TYPE = {SIP:217233491, Lumpsum:2059821448, Redemption:1244525491};
+const AGE_SIP = [{a:'18-25',v:10953},{a:'26-35',v:10987},{a:'36-45',v:10886},{a:'46-55',v:11137},{a:'56+',v:11575}];
+const MONTHLY_TX = [
+  {m:'2024-01',v:210},{m:'2024-02',v:195},{m:'2024-03',v:225},{m:'2024-04',v:215},{m:'2024-05',v:230},
+  {m:'2024-06',v:218},{m:'2024-07',v:222},{m:'2024-08',v:228},{m:'2024-09',v:240},{m:'2024-10',v:235},
+  {m:'2024-11',v:242},{m:'2024-12',v:250},{m:'2025-01',v:207},{m:'2025-02',v:183},{m:'2025-03',v:220},
+  {m:'2025-04',v:208},{m:'2025-05',v:204}
+];
+const HEATMAP = {
+  'ELSS':{'2024-04':466,'2024-05':553,'2024-06':472,'2024-07':471,'2024-08':499,'2024-09':537,'2024-10':537,'2024-11':571,'2024-12':521,'2025-01':516,'2025-02':437,'2025-03':500},
+  'Flexi Cap':{'2024-04':4947,'2024-05':5529,'2024-06':4478,'2024-07':4869,'2024-08':5562,'2024-09':5397,'2024-10':6004,'2024-11':6111,'2024-12':4654,'2025-01':5603,'2025-02':6068,'2025-03':4767},
+  'Gilt':{'2024-04':784,'2024-05':836,'2024-06':864,'2024-07':959,'2024-08':952,'2024-09':925,'2024-10':898,'2024-11':704,'2024-12':831,'2025-01':744,'2025-02':942,'2025-03':956},
+  'Hybrid':{'2024-04':2955,'2024-05':3487,'2024-06':3163,'2024-07':3291,'2024-08':3684,'2024-09':3015,'2024-10':3314,'2024-11':3264,'2024-12':3538,'2025-01':2967,'2025-02':3360,'2025-03':2830},
+  'Large & Mid Cap':{'2024-04':4214,'2024-05':4368,'2024-06':4610,'2024-07':5023,'2024-08':5411,'2024-09':4528,'2024-10':4581,'2024-11':5556,'2024-12':4878,'2025-01':4816,'2025-02':5524,'2025-03':4243},
+  'Large Cap':{'2024-04':2413,'2024-05':2076,'2024-06':2519,'2024-07':2574,'2024-08':1940,'2024-09':1879,'2024-10':2255,'2024-11':1870,'2024-12':1923,'2025-01':2025,'2025-02':1925,'2025-03':2234},
+  'Mid Cap':{'2024-04':3897,'2024-05':5300,'2024-06':5047,'2024-07':4548,'2024-08':3899,'2024-09':4960,'2024-10':4106,'2024-11':4336,'2024-12':5023,'2025-01':4316,'2025-02':4819,'2025-03':5061},
+  'Sectoral/Thematic':{'2024-04':8052,'2024-05':8354,'2024-06':10030,'2024-07':9896,'2024-08':8360,'2024-09':8518,'2024-10':7680,'2024-11':7397,'2024-12':9820,'2025-01':7893,'2025-02':9215,'2025-03':8614},
+  'Short Duration':{'2024-04':4400,'2024-05':4833,'2024-06':4321,'2024-07':4170,'2024-08':4658,'2024-09':5327,'2024-10':4675,'2024-11':5316,'2024-12':4159,'2025-01':4752,'2025-02':4033,'2025-03':4886},
+  'Small Cap':{'2024-04':3533,'2024-05':4092,'2024-06':3535,'2024-07':3582,'2024-08':3376,'2024-09':4137,'2024-10':4444,'2024-11':3256,'2024-12':4249,'2025-01':4554,'2025-02':3534,'2025-03':4304},
+  'Value/Contra':{'2024-04':1328,'2024-05':1361,'2024-06':1386,'2024-07':1582,'2024-08':1308,'2024-09':1334,'2024-10':1595,'2024-11':1436,'2024-12':1414,'2025-01':1339,'2025-02':1400,'2025-03':1497}
+};
+const TOP5_CAT = [
+  {c:'Sectoral/Thematic',v:103829},{c:'Flexi Cap',v:63989},{c:'Large & Mid Cap',v:57752},
+  {c:'Short Duration',v:55530},{c:'Mid Cap',v:55312}
+];
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+function showPage(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ============================================================
+// CHART REGISTRY (destroy before recreate)
+// ============================================================
+const charts = {};
+function getOrCreate(id, cfg) {
+  if (charts[id]) { charts[id].destroy(); }
+  charts[id] = new Chart(document.getElementById(id), cfg);
+  return charts[id];
+}
+
+// ============================================================
+// PAGE 1 CHARTS
+// ============================================================
+function initPage1() {
+  // AUM Trend Line
+  getOrCreate('c_aum_trend', {
+    type: 'line',
+    data: {
+      labels: AUM_TREND.map(x=>x.d),
+      datasets: [{
+        label: 'Industry AUM (₹ Cr)',
+        data: AUM_TREND.map(x=>x.v),
+        borderColor: '#1971c2', backgroundColor: 'rgba(25,113,194,0.08)',
+        borderWidth: 2, pointRadius: 4, pointBackgroundColor: '#1971c2', fill: true, tension: 0.35
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => '₹ ' + (ctx.raw/100000).toFixed(2) + ' L Cr' } } },
+      scales: {
+        x: { grid: { display: false }, ticks: { maxTicksLimit: 8, font: { size: 11 } } },
+        y: { ticks: { callback: v => '₹'+(v/100000).toFixed(0)+'L', font: { size: 11 } }, grid: { color: 'rgba(0,0,0,0.04)' } }
+      }
+    }
+  });
+
+  // Top 10 bar
+  const sorted = [...TOP10].sort((a,b)=>a.v-b.v);
+  getOrCreate('c_top10', {
+    type: 'bar',
+    data: {
+      labels: sorted.map(x=>x.h),
+      datasets: [{
+        label: 'AUM (₹ Cr)',
+        data: sorted.map(x=>x.v),
+        backgroundColor: ['#e7f5ff','#d0ebff','#bac8ff','#a5d8ff','#74c0fc','#4dabf7','#339af0','#228be6','#1c7ed6','#1971c2'],
+        borderColor: '#1971c2', borderWidth: 0.5
+      }]
+    },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => '₹ ' + (ctx.raw/100000).toFixed(2) + ' L Cr' } } },
+      scales: {
+        x: { ticks: { callback: v => '₹'+(v/100000).toFixed(1)+'L', font: { size: 11 } }, grid: { color: 'rgba(0,0,0,0.04)' } },
+        y: { grid: { display: false }, ticks: { font: { size: 11 } } }
+      }
+    }
+  });
+}
+
+// ============================================================
+// PAGE 2 CHARTS
+// ============================================================
+let perfData = [...PERF];
+let sortKey = null, sortDir = 1;
+
+const CAT_COLORS = {
+  'Large Cap':'#1971c2','Mid Cap':'#0f9e77','Small Cap':'#c92a2a','Flexi Cap':'#6741d9',
+  'Large & Mid Cap':'#e67700','Gilt':'#0c8599','Short Duration':'#495057','Liquid':'#74c0fc',
+  'ELSS':'#e8590c','Value':'#862e9c','Index/ETF':'#2f9e44','Index':'#1098ad','Moderately High':'#6741d9'
+};
+function getCatColor(cat) { return CAT_COLORS[cat] || '#868e96'; }
+
+function initScatter(data) {
+  const max_aum = Math.max(...data.map(d=>d.aum_crore));
+  getOrCreate('c_scatter', {
+    type: 'bubble',
+    data: {
+      datasets: [{
+        label: 'Funds',
+        data: data.map(d => ({
+          x: d.return_3yr_pct, y: d.std_dev,
+          r: Math.max(4, Math.sqrt(d.aum_crore/max_aum)*30),
+          scheme: d.scheme_name, cat: d.category, aum: d.aum_crore
+        })),
+        backgroundColor: data.map(d => getCatColor(d.category)+'88'),
+        borderColor: data.map(d => getCatColor(d.category)),
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => `${ctx.raw.scheme} | Return: ${ctx.raw.x}% | Risk: ${ctx.raw.y}% | AUM: ₹${ctx.raw.aum.toLocaleString('en-IN')} Cr` } }
+      },
+      scales: {
+        x: { title: { display: true, text: '3-Year Return (%)', font: { size: 11 } }, min: 0, max: 30, grid: { color: 'rgba(0,0,0,0.04)' } },
+        y: { title: { display: true, text: 'Std Dev Ann. (%)', font: { size: 11 } }, min: -2, max: 30, grid: { color: 'rgba(0,0,0,0.04)' } }
+      }
+    }
+  });
+}
+
+function initScorecard(data) {
+  const tbody = document.getElementById('scorecard-body');
+  const riskClass = { 'Low':'badge-low','Moderate':'badge-mod','Moderately High':'badge-mod','High':'badge-high','Very High':'badge-high' };
+  tbody.innerHTML = data.map(d => `
+    <tr>
+      <td title="${d.scheme_name}">${d.scheme_name.length>38?d.scheme_name.slice(0,36)+'…':d.scheme_name}</td>
+      <td>${d.fund_house.replace(' Mutual Fund','').replace(' MF','')}</td>
+      <td>${d.category}</td>
+      <td style="text-align:right;color:${d.return_1yr_pct>12?'#2f9e44':d.return_1yr_pct>8?'#e67700':'#c92a2a'}">${d.return_1yr_pct.toFixed(2)}%</td>
+      <td style="text-align:right;color:${d.return_3yr_pct>13?'#2f9e44':d.return_3yr_pct>8?'#e67700':'#c92a2a'}">${d.return_3yr_pct.toFixed(2)}%</td>
+      <td style="text-align:right">${d.sharpe_ratio.toFixed(2)}</td>
+      <td style="text-align:right">₹${d.aum_crore.toLocaleString('en-IN')}</td>
+      <td><span class="badge ${riskClass[d.risk_grade]||'badge-mod'}">${d.risk_grade}</span></td>
+    </tr>
+  `).join('');
+}
+
+function sortTable(key) {
+  if (sortKey === key) sortDir *= -1; else { sortKey = key; sortDir = 1; }
+  perfData.sort((a,b) => typeof a[key]==='number' ? (a[key]-b[key])*sortDir : (a[key]||'').localeCompare(b[key]||'')*sortDir);
+  initScorecard(perfData);
+}
+
+function filterPerf() {
+  const fh = document.getElementById('sl_fh').value;
+  const cat = document.getElementById('sl_cat').value;
+  const plan = document.getElementById('sl_plan').value;
+  perfData = PERF.filter(d =>
+    (!fh || d.fund_house === fh) &&
+    (!cat || d.category === cat) &&
+    (!plan || d.plan === plan)
+  );
+  initScatter(perfData);
+  initScorecard(perfData);
+}
+
+let navChart = null;
+function updateNavChart() {
+  const code = parseInt(document.getElementById('sl_fund_nav').value);
+  const navArr = NAV_DATA[code] || [];
+  const benchmarks = {
+    100016: 'NIFTY100', 100033: 'NIFTY_MIDCAP', 101206: 'NIFTY100',
+    102885: 'NIFTY50', 118632: 'NIFTY100', 119092: 'NIFTY100', 119551: 'NIFTY100'
+  };
+  const b = benchmarks[code] || 'NIFTY50';
+  const labels = navArr.map(x=>x.d);
+  const navVals = navArr.map(x=>x.v);
+  const base = navVals[0];
+  const navNorm = navVals.map(v => ((v/base-1)*100).toFixed(2));
+  const niftyFiltered = NIFTY50.filter(x => labels.includes(x.d));
+  const nb = niftyFiltered.length ? niftyFiltered[0].v : 1;
+  const niftyNorm = niftyFiltered.map(x => ((x.v/nb-1)*100).toFixed(2));
+
+  if (navChart) navChart.destroy();
+  navChart = getOrCreate('c_nav', {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Fund NAV (% return)', data: navNorm, borderColor: '#1971c2', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 3, tension: 0.3 },
+        { label: b+' (% return)', data: niftyNorm, borderColor: '#e67700', backgroundColor: 'transparent', borderWidth: 2, borderDash: [5,3], pointRadius: 3, tension: 0.3 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ctx.dataset.label + ': ' + ctx.raw + '%' } } },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+        y: { ticks: { callback: v => v+'%', font: { size: 10 } }, grid: { color: 'rgba(0,0,0,0.04)' } }
+      }
+    }
+  });
+}
+
+function initPage2() {
+  initScatter(PERF);
+  initScorecard(PERF);
+  updateNavChart();
+}
+
+// ============================================================
+// PAGE 3 CHARTS
+// ============================================================
+function initPage3(stateFilter, ageFilter, tierFilter) {
+  let stateData = [...STATE_DATA];
+  // State bar
+  const sorted_s = [...stateData].sort((a,b)=>b.v-a.v);
+  getOrCreate('c_state', {
+    type: 'bar',
+    data: {
+      labels: sorted_s.map(x=>x.s),
+      datasets: [{
+        label: 'Amount (₹ Cr)',
+        data: sorted_s.map(x=>(x.v/10000000).toFixed(1)),
+        backgroundColor: sorted_s.map((_,i) => `hsl(${200+i*8},70%,${55-i*2}%)`),
+        borderWidth: 0
+      }]
+    },
+    options: {
+      indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false} },
+      scales:{
+        x:{ ticks:{callback:v=>v+'Cr', font:{size:10}}, grid:{color:'rgba(0,0,0,0.04)'} },
+        y:{ grid:{display:false}, ticks:{font:{size:11}} }
+      }
+    }
+  });
+
+  // Donut
+  const txLabels = ['Lumpsum','SIP','Redemption'];
+  const txVals = [TX_TYPE.Lumpsum, TX_TYPE.SIP, TX_TYPE.Redemption];
+  const txColors = ['#1971c2','#0f9e77','#e67700'];
+  const txTotal = txVals.reduce((a,b)=>a+b,0);
+  document.getElementById('donut-center').innerHTML = `<div class="donut-center-val">₹${(txTotal/10000000).toFixed(0)}Cr</div><div class="donut-center-lbl">Total</div>`;
+  document.getElementById('donut-legend').innerHTML = txLabels.map((l,i)=>`<div class="legend-item"><span class="legend-dot" style="background:${txColors[i]}"></span>${l}: ${(txVals[i]/txTotal*100).toFixed(1)}%</div>`).join('');
+  getOrCreate('c_donut', {
+    type: 'doughnut',
+    data: { labels: txLabels, datasets: [{ data: txVals, backgroundColor: txColors, borderWidth: 2, borderColor: '#fff' }] },
+    options: {
+      responsive:true, maintainAspectRatio:false, cutout:'65%',
+      plugins:{ legend:{display:false}, tooltip:{callbacks:{label:ctx=>ctx.label+': ₹'+(ctx.raw/10000000).toFixed(0)+' Cr ('+(ctx.raw/txTotal*100).toFixed(1)+'%)'}} }
+    }
+  });
+
+  // Age SIP
+  getOrCreate('c_age', {
+    type: 'bar',
+    data: {
+      labels: AGE_SIP.map(x=>x.a),
+      datasets: [{ label: 'Avg SIP (₹)', data: AGE_SIP.map(x=>x.v), backgroundColor: '#0f9e7788', borderColor: '#0f9e77', borderWidth: 1 }]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{grid:{display:false}, ticks:{font:{size:11}}},
+        y:{ticks:{callback:v=>'₹'+v, font:{size:10}}, grid:{color:'rgba(0,0,0,0.04)'}}
+      }
+    }
+  });
+
+  // Monthly transaction volume
+  getOrCreate('c_monthtx', {
+    type: 'line',
+    data: {
+      labels: MONTHLY_TX.map(x=>x.m),
+      datasets:[{ label:'Volume (₹ Cr)', data:MONTHLY_TX.map(x=>x.v), borderColor:'#6741d9', backgroundColor:'rgba(103,65,217,0.08)', borderWidth:2, pointRadius:3, fill:true, tension:0.3 }]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{grid:{display:false}, ticks:{maxTicksLimit:8, font:{size:10}}},
+        y:{ticks:{callback:v=>v+'Cr', font:{size:10}}, grid:{color:'rgba(0,0,0,0.04)'}}
+      }
+    }
+  });
+}
+
+function filterInvestor() { initPage3(); }
+
+// ============================================================
+// PAGE 4 CHARTS
+// ============================================================
+function initPage4() {
+  // Dual axis SIP + Nifty
+  const sipLabels = SIP_MONTHLY.map(x=>x.m);
+  const niftyMap = {};
+  NIFTY50.forEach(x=>niftyMap[x.d]=x.v);
+  const niftyAligned = sipLabels.map(l=>niftyMap[l]||null);
+
+  getOrCreate('c_dual', {
+    type: 'bar',
+    data: {
+      labels: sipLabels,
+      datasets: [
+        { type:'bar', label:'SIP Inflow (₹ Cr)', data:SIP_MONTHLY.map(x=>x.v), backgroundColor:'rgba(15,158,119,0.7)', borderColor:'#0f9e77', borderWidth:0.5, yAxisID:'y', order:2 },
+        { type:'line', label:'Nifty 50', data:niftyAligned, borderColor:'#e67700', backgroundColor:'transparent', borderWidth:2, pointRadius:0, tension:0.3, yAxisID:'y1', order:1 }
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins: {
+        legend:{display:false},
+        tooltip:{mode:'index', intersect:false}
+      },
+      scales:{
+        x:{ grid:{display:false}, ticks:{maxTicksLimit:12, font:{size:10}} },
+        y:{ position:'left', title:{display:true,text:'SIP Inflow (₹ Cr)',font:{size:11}}, ticks:{font:{size:10}}, grid:{color:'rgba(0,0,0,0.04)'} },
+        y1:{ position:'right', title:{display:true,text:'Nifty 50',font:{size:11}}, ticks:{font:{size:10}}, grid:{display:false} }
+      }
+    }
+  });
+
+  // Heatmap (HTML table)
+  const months = ['2024-04','2024-05','2024-06','2024-07','2024-08','2024-09','2024-10','2024-11','2024-12','2025-01','2025-02','2025-03'];
+  const shortM = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar'];
+  const cats = Object.keys(HEATMAP);
+  let allVals = [];
+  cats.forEach(c=>months.forEach(m=>{ if(HEATMAP[c][m]) allVals.push(HEATMAP[c][m]); }));
+  const minV = Math.min(...allVals), maxV = Math.max(...allVals);
+  function hmColor(v) {
+    const t = (v-minV)/(maxV-minV);
+    const r = Math.round(20+t*180), g = Math.round(160-t*100), b = Math.round(220-t*160);
+    return `rgb(${r},${g},${b})`;
+  }
+  function textColor(v) { const t=(v-minV)/(maxV-minV); return t>0.6?'#fff':'#1a1a2e'; }
+
+  let html = '<div id="heatmap-wrap" style="overflow-x:auto;margin-top:8px"><table class="hm-table"><thead><tr><th style="text-align:left;background:#f1f3f5;position:sticky;left:0">Category</th>';
+  shortM.forEach(m=>{ html+=`<th>${m}</th>`; });
+  html+='</tr></thead><tbody>';
+  cats.forEach(c=>{
+    html+=`<tr><td class="row-label">${c}</td>`;
+    months.forEach(m=>{
+      const v=HEATMAP[c][m]||0;
+      html+=`<td style="background:${hmColor(v)};color:${textColor(v)}">${v>=1000?(v/1000).toFixed(1)+'K':v}</td>`;
+    });
+    html+='</tr>';
+  });
+  html+='</tbody></table></div>';
+  document.getElementById('heatmap-wrap').innerHTML = html;
+
+  // Top 5 categories
+  getOrCreate('c_top5cat', {
+    type: 'bar',
+    data: {
+      labels: TOP5_CAT.map(x=>x.c),
+      datasets:[{ label:'Net Inflow (₹ Cr)', data:TOP5_CAT.map(x=>x.v), backgroundColor:['#1971c2','#0f9e77','#6741d9','#e67700','#0c8599'], borderWidth:0 }]
+    },
+    options: {
+      indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{ticks:{callback:v=>(v/1000).toFixed(0)+'K', font:{size:10}}, grid:{color:'rgba(0,0,0,0.04)'}},
+        y:{grid:{display:false}, ticks:{font:{size:11}}}
+      }
+    }
+  });
+}
+
+// ============================================================
+// INIT ALL PAGES
+// ============================================================
+window.addEventListener('load', () => {
+  initPage1();
+  initPage2();
+  initPage3();
+  initPage4();
+});
+</script>
+</body>
+</html>
